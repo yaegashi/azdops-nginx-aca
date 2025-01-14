@@ -1,8 +1,10 @@
 {
 	"image": "ghcr.io/yaegashi/dx2devops-nginx-aca/devcontainer:latest",
+	"postCreateCommand": "bash -x .devcontainer/install-dev-tools.sh",
     "customizations": {
 		"vscode": {
 			"extensions": [
+				"ms-python.python",
 				"ms-azuretools.vscode-bicep",
 				"ms-vscode.PowerShell",
 				"ms-vscode.vscode-node-azure-pack"

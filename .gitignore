@@ -1,1 +1,3 @@
-.azure
+/.azure
+/.venv
+/site

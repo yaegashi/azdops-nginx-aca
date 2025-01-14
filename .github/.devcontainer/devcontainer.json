@@ -11,6 +11,11 @@
 			"installDockerComposeSwitch": true,
 			"version": "latest"
 		},
+		"ghcr.io/devcontainers/features/node:1": {
+			"nodeGypDependencies": true,
+			"installYarnUsingApt": true,
+			"version": "lts"
+		},
 		"ghcr.io/devcontainers/features/powershell:1": {
 			"version": "latest",
 			"modules": "Microsoft.Graph.Authentication,Microsoft.Graph.Users,Microsoft.Graph.Groups,powershell-yaml"
@@ -20,6 +25,14 @@
 		},
 		"ghcr.io/azure/azure-dev/azd:0": {
 			"version": "stable"
+		},
+		"ghcr.io/devcontainers-extra/features/rclone:1": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
+			"packages": [
+				"python3-venv"
+			]
 		}
 	}
 }

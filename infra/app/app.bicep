@@ -40,7 +40,7 @@ var tokenStoreSas = storage.listServiceSAS('2022-05-01', {
 }).serviceSasToken
 var tokenStoreUrl = 'https://${storage.name}.blob.${environment().suffixes.storage}/${storage::blobService::tokenStore.name}?${tokenStoreSas}'
 
-resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-08-01-preview' existing = {
+resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-10-02-preview' existing = {
   name: containerAppsEnvironmentName
   resource nginx 'storages' = {
     name: 'nginx'
@@ -55,7 +55,7 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-08-01-
   }
 }
 
-resource certificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-08-01-preview' = if (!empty(appCustomDomainName)) {
+resource certificate 'Microsoft.App/managedEnvironments/managedCertificates@2024-10-02-preview' = if (!empty(appCustomDomainName)) {
   parent: containerAppsEnvironment
   name: 'cert-${appCustomDomainName}'
   location: location
@@ -66,7 +66,7 @@ resource certificate 'Microsoft.App/managedEnvironments/managedCertificates@2023
   }
 }
 
-resource containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
+resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: containerAppName
   location: location
   tags: tags
@@ -137,6 +137,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
       scale: {
         minReplicas: 0
         maxReplicas: 1
+        cooldownPeriod: 3600
       }
     }
   }

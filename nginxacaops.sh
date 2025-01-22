@@ -34,19 +34,21 @@ confirm() {
 	exit 1
 }
 
-app_hostname() {
-	HOSTNAME=$(az containerapp hostname list $AZ_ARGS --query [0].name -o tsv)
-	if test -z "$HOSTNAME"; then
-		HOSTNAME=$(az containerapp show $ARGS --query properties.configuration.ingress.fqdn -o tsv)
+app_hostnames() {
+	HOSTNAMES=$(az containerapp hostname list $AZ_ARGS --query [].name -o tsv)
+	if test -z "$HOSTNAMES"; then
+		HOSTNAMES=$(az containerapp show $ARGS --query properties.configuration.ingress.fqdn -o tsv)
 	fi
-	echo $HOSTNAME
+	echo $HOSTNAMES
 }
 
 cmd_meid_redirect() {
-	APP_HOSTNAME=$(app_hostname)
-	URI="https://${APP_HOSTNAME}/.auth/login/aad/callback"
+	HOSTS=$(app_hostnames)
 	URIS=$(az ad app show --id $MS_CLIENT_ID --query web.redirectUris -o tsv)
-	URIS=$(echo "${URI}${NL}${URIS}" | sort | uniq)
+	for HOST in $HOSTS; do
+		URIS="https://${HOST}/.auth/login/aad/callback${NL}${URIS}"
+	done
+	URIS=$(echo "$URIS" | sort | uniq)
 	msg "ME-ID App Client ID:    ${MS_CLIENT_ID}"
 	msg "ME-ID App Redirect URI: ${URI}"
 	msg "Updating new Redirect URIs:${NL}${URIS}"
@@ -55,11 +57,11 @@ cmd_meid_redirect() {
 }
 
 cmd_meid_secret() {
-	APP_HOSTNAME=$(app_hostname)
+	HOSTS=$(app_hostnames)
 	CRED_TIME=$(date +%s)
-	CRED_NAME="$APP_HOSTNAME $CRED_TIME"
+	CRED_NAME="$HOSTS $CRED_TIME"
 	msg "ME-ID App Client ID: ${MS_CLIENT_ID}"
-	msg "Adding new Client Secret for $APP_HOSTNAME"
+	msg "Adding new Client Secret for $HOSTS"
 	confirm
 	msg "ME-ID App new credential name: $CRED_NAME"
 	PASSWORD=$(az ad app credential reset --id $MS_CLIENT_ID --append --display-name "$CRED_NAME" --end-date 2299-12-31 --query password -o tsv 2>/dev/null)
@@ -172,9 +174,15 @@ cmd_portal_meid() {
 }
 
 cmd_open() {
-	HOSTNAME=$(app_hostname)
-  	URL="https://${HOSTNAME}${APP_ROOT_PATH}"
-	run xdg-open "$URL"
+	HOSTS=$(app_hostnames)
+	for HOST in $HOSTS; do
+		if test "${HOST%%.*}" != "*"; then
+			run xdg-open "https://${HOST}${APP_ROOT_PATH}"
+			exit 0
+		fi
+	done
+	msg 'No valid hostname found'
+	exit 1
 }
 
 cmd_help() {

@@ -35,6 +35,14 @@ param dnsZoneName string = ''
 
 param dnsRecordName string = ''
 
+param dnsWildcard bool = false
+
+param dnsCertificateExists bool = false
+
+param legoEmail string = ''
+
+param legoServer string = 'https://acme-staging-v02.api.letsencrypt.org/directory'
+
 param msTenantId string
 param msClientId string
 @secure()
@@ -51,7 +59,9 @@ var tags = {
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location, rg.name))
 
 var dnsEnable = !empty(dnsZoneResourceGroupName) && !empty(dnsZoneName) && !empty(dnsRecordName)
-var appCustomDomainName = dnsEnable ? '${dnsRecordName}.${dnsZoneName}' : ''
+var dnsDomainName = dnsEnable ? '${dnsRecordName}.${dnsZoneName}' : ''
+
+var legoEnable = dnsWildcard && !empty(legoEmail) && !empty(legoServer)
 
 resource dnsZoneRG 'Microsoft.Resources/resourceGroups@2021-04-01' existing = if (dnsEnable && !appCertificateExists) {
   name: dnsZoneResourceGroupName
@@ -74,6 +84,17 @@ module dnsCNAME './app/dns-cname.bicep' = if (dnsEnable && !appCertificateExists
     dnsZoneName: dnsZoneName
     dnsRecordName: dnsRecordName
     cname: appPrep.outputs.fqdn
+    wildcard: dnsWildcard
+  }
+}
+
+module dnsAccess './app/dns-access.bicep' = if (dnsEnable) {
+  dependsOn: [KeyVaultAccessUserAssignedIdentity] // Insert delay
+  name: 'dnsAccess'
+  scope: dnsZoneRG
+  params: {
+    dnsZoneName: dnsZoneName
+    principalId: userAssignedIdentity.outputs.principalId
   }
 }
 
@@ -111,6 +132,10 @@ module KeyVaultAccessUserAssignedIdentity './core/security/keyvault-access.bicep
   params: {
     keyVaultName: keyVault.outputs.name
     principalId: userAssignedIdentity.outputs.principalId
+    permissions: {
+      secrets: ['list', 'get']
+      certificates: ['list', 'get', 'import']
+    }
   }
 }
 
@@ -120,7 +145,10 @@ module keyVaultAccessDeployment './core/security/keyvault-access.bicep' = {
   params: {
     keyVaultName: keyVault.outputs.name
     principalId: principalId
-    permissions: { secrets: ['list', 'get', 'set'] }
+    permissions: {
+      secrets: ['list', 'get', 'set']
+      certificates: ['list', 'get', 'import']
+    }
   }
 }
 
@@ -185,6 +213,7 @@ module env './app/env.bicep' = {
     tags: tags
     containerAppsEnvironmentName: xContainerAppsEnvironmentName
     logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
+    userAssignedIdentityName: userAssignedIdentity.outputs.name
   }
 }
 
@@ -197,7 +226,8 @@ module appPrep './app/app-prep.bicep' = if (dnsEnable && !appCertificateExists) 
     tags: tags
     containerAppsEnvironmentName: env.outputs.name
     containerAppName: xContainerAppName
-    appCustomDomainName: appCustomDomainName
+    dnsDomainName: dnsDomainName
+    dnsWildcard: dnsWildcard
   }
 }
 
@@ -212,11 +242,30 @@ module app './app/app.bicep' = {
     containerAppName: xContainerAppName
     storageAccountName: storageAccount.outputs.name
     userAssignedIdentityName: userAssignedIdentity.outputs.name
-    appCustomDomainName: appCustomDomainName
+    dnsDomainName: dnsDomainName
+    dnsWildcard: dnsWildcard
+    dnsCertificateKV: dnsCertificateExists ? '${keyVault.outputs.endpoint}secrets/DNS-CERTIFICATE' : ''
     msTenantId: msTenantId
     msClientId: msClientId
     msClientSecretKV: '${keyVault.outputs.endpoint}secrets/MS-CLIENT-SECRET'
     msAllowedGroupId: msAllowedGroupId
+  }
+}
+
+module appLego './app/app-lego.bicep' = if (legoEnable) {
+  name: 'appLego'
+  scope: rg
+  params: {
+    location: location
+    tags: tags
+    containerAppsEnvironmentName: env.outputs.name
+    containerAppName: xContainerAppName
+    storageAccountName: storageAccount.outputs.name
+    userAssignedIdentityName: userAssignedIdentity.outputs.name
+    keyVaultName: keyVault.outputs.name
+    dnsDomainName: dnsDomainName
+    legoEmail: legoEmail
+    legoServer: legoServer
   }
 }
 
@@ -228,5 +277,6 @@ output AZURE_RESOURCE_GROUP_NAME string = rg.name
 output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
 output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.endpoint
 output AZURE_CONTAINER_APPS_APP_NAME string = app.outputs.name
+output AZURE_CONTAINER_APPS_LEGO_NAME string = appLego.outputs.name
 output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
-output APP_CERTIFICATE_EXISTS bool = !empty(appCustomDomainName)
+output APP_CERTIFICATE_EXISTS bool = !empty(dnsDomainName)

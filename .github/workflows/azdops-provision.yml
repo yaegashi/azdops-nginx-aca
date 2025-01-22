@@ -61,6 +61,9 @@ jobs:
           azd env set DNS_ZONE_RESOURCE_GROUP_NAME $DNS_ZONE_RESOURCE_GROUP_NAME
           azd env set DNS_ZONE_NAME $DNS_ZONE_NAME
           azd env set DNS_RECORD_NAME $DNS_RECORD_NAME
+          azd env set DNS_WILDCARD $DNS_WILDCARD
+          azd env set LEGO_EMAIL $LEGO_EMAIL
+          azd env set LEGO_SERVER $LEGO_SERVER
           azd env set MS_TENANT_ID $MS_TENANT_ID
           azd env set MS_CLIENT_ID $MS_CLIENT_ID
           azd env set MS_ALLOWED_GROUP_ID $MS_ALLOWED_GROUP_ID

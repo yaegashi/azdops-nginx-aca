@@ -1,12 +1,16 @@
 param containerAppsEnvironmentName string
 param containerAppName string
-param appCustomDomainName string
+param dnsDomainName string
+param dnsWildcard bool = false
 param location string = resourceGroup().location
 param tags object = {}
 
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-08-01-preview' existing = {
   name: containerAppsEnvironmentName
 }
+
+var baseDomain = { name: dnsDomainName, certificateId: null, bindingType: 'Disabled' }
+var wildcardDomain = { name: '*.${dnsDomainName}', certificateId: null, bindingType: 'Disabled' }
 
 resource containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
   name: containerAppName
@@ -18,13 +22,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
       ingress: {
         external: true
         targetPort: 8080
-        customDomains: [
-          {
-            name: appCustomDomainName
-            certificateId: null
-            bindingType: 'Disabled'
-          }
-        ]
+        customDomains: empty(dnsDomainName) ? null : concat([baseDomain], dnsWildcard ? [wildcardDomain] : [])
       }
     }
     template: {

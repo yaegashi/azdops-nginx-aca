@@ -3,7 +3,9 @@ param containerAppName string
 param location string = resourceGroup().location
 param tags object = {}
 param storageAccountName string
-param appCustomDomainName string = ''
+param dnsDomainName string = ''
+param dnsWildcard bool = false
+param dnsCertificateKV string = ''
 param msTenantId string
 param msClientId string
 param msClientSecretKV string
@@ -55,16 +57,34 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-10-02-
   }
 }
 
-resource certificate 'Microsoft.App/managedEnvironments/managedCertificates@2024-10-02-preview' = if (!empty(appCustomDomainName)) {
+resource appCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2024-10-02-preview' = if (!empty(dnsDomainName)) {
   parent: containerAppsEnvironment
-  name: 'cert-${appCustomDomainName}'
+  name: 'app-cert-${dnsDomainName}'
   location: location
   tags: tags
   properties: {
-    subjectName: appCustomDomainName
+    subjectName: dnsDomainName
     domainControlValidation: 'CNAME'
   }
 }
+
+resource dnsCertificate 'Microsoft.App/managedEnvironments/certificates@2024-10-02-preview' = if (!empty(dnsCertificateKV)) {
+  parent: containerAppsEnvironment
+  name: 'dns-cert-${dnsDomainName}'
+  location: location
+  tags: tags
+  properties: {
+    certificateKeyVaultProperties: {
+      keyVaultUrl: dnsCertificateKV
+      identity: userAssignedIdentity.id
+    }
+  }
+}
+
+var appCertDomain = { name: dnsDomainName, certificateId: appCertificate.id, bindingType: 'SniEnabled' }
+var dnsCertDomain = empty(dnsCertificateKV)
+  ? { name: '*.${dnsDomainName}', certificateId: null, bindingType: 'Disabled' }
+  : { name: '*.${dnsDomainName}', certificateId: dnsCertificate.id, bindingType: 'SniEnabled' }
 
 resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: containerAppName
@@ -82,15 +102,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
       ingress: {
         external: true
         targetPort: 80
-        customDomains: empty(appCustomDomainName)
-          ? null
-          : [
-              {
-                name: appCustomDomainName
-                certificateId: certificate.id
-                bindingType: 'SniEnabled'
-              }
-            ]
+        customDomains: empty(dnsDomainName) ? null : concat([appCertDomain], dnsWildcard ? [dnsCertDomain] : [])
       }
       secrets: [
         {
@@ -101,6 +113,12 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
         {
           name: 'token-store-url'
           value: tokenStoreUrl
+        }
+      ]
+      identitySettings: [
+        {
+          identity: userAssignedIdentity.id
+          lifecycle: 'All'
         }
       ]
     }

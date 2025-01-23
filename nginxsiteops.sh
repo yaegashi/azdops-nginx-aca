@@ -37,11 +37,13 @@ cmd_rclone_config() {
 		NGINX_SITE_SAS_URL="https://${AZURE_STORAGE_ACCOUNT_NAME}.file.core.windows.net/nginx?$SAS"
 	fi
 	msg "Running: rclone config"
-	rclone config create remote azurefiles sas_url "$NGINX_SITE_SAS_URL"
+	rclone config create remote azurefiles sas_url "$NGINX_SITE_SAS_URL" >/dev/null
 }
 
 cmd_rclone_sync() {
-	run rclone sync --verbose site/. remote:data/site/.
+	SITE_NAME=${1-main}
+	msg "Syncing to remote site: $SITE_NAME"
+	run rclone sync --verbose site/. remote:data/sites/$SITE_NAME/.
 	run rclone sync --verbose templates/. remote:templates/.
 }
 
@@ -56,7 +58,7 @@ cmd_help() {
 	msg "  --container <name>         - Specify container name"
 	msg "Commands:"
 	msg "  rclone-config              - Rclone: config"
-	msg "  rclone-sync                - Rclone: sync"
+	msg "  rclone-sync [site_name]    - Rclone: sync"
 	exit $1
 }
 

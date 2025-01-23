@@ -1,9 +1,13 @@
-server {
-    listen       80;
-    server_name  localhost;
+map $host $site_name {
+    ~^${NGINX_HOST}$ main;
+    ~^(.+)\.${NGINX_HOST}$ $1;
+}
 
+server {
+    listen ${NGINX_PORT};
+    server_name .${NGINX_HOST};
     location / {
-        root   /data/site;
-        index  index.html index.htm;
+        root /data/sites/$site_name;
+        index index.html index.htm;
     }
 }

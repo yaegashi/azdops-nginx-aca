@@ -134,6 +134,16 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
         {
           name: 'nginx'
           image: 'nginx'
+          env: [
+            {
+              name: 'NGINX_HOST'
+              value: dnsDomainName
+            }
+            {
+              name: 'NGINX_PORT'
+              value: '80'
+            }
+          ]
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'

@@ -52,7 +52,11 @@ resource appLego 'Microsoft.App/jobs@2024-10-02-preview' = {
     environmentId: containerAppsEnvironment.id
     configuration: {
       replicaTimeout: 300
-      triggerType: 'Manual'
+      triggerType: 'Schedule'
+      scheduleTriggerConfig: {
+        // Run at 00:00 UTC every day
+        cronExpression: '0 0 * * *'
+      }
       identitySettings: [
         {
           identity: userAssignedIdentity.id

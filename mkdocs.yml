@@ -1,5 +1,5 @@
-site_name: DX2DEVOPS NGINX ACA Document
-repo_url: https://github.com/yaegashi/dx2devops-nginx-aca
+site_name: AZDOPS NGINX ACA Document
+repo_url: https://github.com/yaegashi/azdops-nginx-aca
 edit_uri: blob/main/docs/
 
 plugins:

@@ -1,7 +1,7 @@
 {
-	"image": "ghcr.io/yaegashi/dx2devops-nginx-aca/devcontainer:latest",
+	"image": "ghcr.io/yaegashi/azdops-nginx-aca/devcontainer:latest",
 	"postCreateCommand": "bash -x .devcontainer/install-dev-tools.sh",
-    "customizations": {
+	"customizations": {
 		"vscode": {
 			"extensions": [
 				"ms-python.python",

@@ -1,6 +1,6 @@
 # Introduction
 
-This is the [MkDocs] template repository to deploy static web sites using [dx2devops-nginx-aca].
+This is the [MkDocs] template repository to deploy static web sites using [azdops-nginx-aca].
 
 [MkDocs]: https://www.mkdocs.org/
-[dx2devops-nginx-aca]: https://github.com/yaegashi/dx2devops-nginx-aca
+[azdops-nginx-aca]: https://github.com/yaegashi/azdops-nginx-aca

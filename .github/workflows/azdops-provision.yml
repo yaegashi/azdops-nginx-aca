@@ -8,6 +8,7 @@ permissions:
   id-token: write
 
 env:
+  AZDOPS_TEMPLATE: azdops-nginx-aca
   AZD_INPUTS_FILE: .github/azdops/${{ github.ref_name }}/inputs.yml
   AZD_REMOTE_FILE: .github/azdops/${{ github.ref_name }}/remote.yml
 
@@ -88,7 +89,7 @@ jobs:
           EOF
           if ! test -r $GITHUB_README_FILE; then
           cat <<EOF >$GITHUB_README_FILE
-          # ${ENV_NAME} (dx2devops-nginx-aca instance)
+          # ${ENV_NAME} (${AZDOPS_TEMPLATE} instance)
 
           - AZD Ops README: [../README.md](../README.md)
           - AZD Inputs File: [${AZD_INPUTS_FILE}](${AZD_INPUTS_FILE})

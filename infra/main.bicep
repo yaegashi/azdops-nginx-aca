@@ -29,6 +29,8 @@ param containerAppsEnvironmentName string = ''
 
 param appCertificateExists bool = false
 
+param dnsZoneSubscriptionId string = subscription().subscriptionId
+
 param dnsZoneResourceGroupName string = ''
 
 param dnsZoneName string = ''
@@ -59,11 +61,12 @@ var tags = {
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location, rg.name))
 
 var dnsEnable = !empty(dnsZoneResourceGroupName) && !empty(dnsZoneName) && !empty(dnsRecordName)
-var dnsDomainName = dnsEnable ? '${dnsRecordName}.${dnsZoneName}' : ''
+var dnsDomainName = !dnsEnable ? '' : dnsRecordName == '@' ? dnsZoneName : '${dnsRecordName}.${dnsZoneName}'
 
 var legoEnable = dnsWildcard && !empty(legoEmail) && !empty(legoServer)
 
 resource dnsZoneRG 'Microsoft.Resources/resourceGroups@2021-04-01' existing = if (dnsEnable && !appCertificateExists) {
+  scope: subscription(dnsZoneSubscriptionId)
   name: dnsZoneResourceGroupName
 }
 
@@ -72,19 +75,48 @@ module dnsTXT './app/dns-txt.bicep' = if (dnsEnable && !appCertificateExists) {
   scope: dnsZoneRG
   params: {
     dnsZoneName: dnsZoneName
-    dnsRecordName: 'asuid.${dnsRecordName}'
+    dnsRecordName: dnsRecordName == '@' ? 'asuid' : 'asuid.${dnsRecordName}'
     txt: env.outputs.customDomainVerificationId
   }
 }
 
-module dnsCNAME './app/dns-cname.bicep' = if (dnsEnable && !appCertificateExists) {
+module dnsCNAME './app/dns-cname.bicep' = if (dnsEnable && !appCertificateExists && dnsRecordName != '@') {
   name: 'dnsCNAME'
   scope: dnsZoneRG
   params: {
     dnsZoneName: dnsZoneName
     dnsRecordName: dnsRecordName
     cname: appPrep.outputs.fqdn
-    wildcard: dnsWildcard
+  }
+}
+
+module dnsCNAMEWildcard './app/dns-cname.bicep' = if (dnsEnable && !appCertificateExists && dnsRecordName != '@' && dnsWildcard) {
+  name: 'dnsCNAMEWildcard'
+  scope: dnsZoneRG
+  params: {
+    dnsZoneName: dnsZoneName
+    dnsRecordName: '*.${dnsRecordName}'
+    cname: appPrep.outputs.fqdn
+  }
+}
+
+module dnsA './app/dns-a.bicep' = if (dnsEnable && !appCertificateExists && dnsRecordName == '@') {
+  name: 'dnsA'
+  scope: dnsZoneRG
+  params: {
+    dnsZoneName: dnsZoneName
+    dnsRecordName: dnsRecordName
+    a: env.outputs.staticIp
+  }
+}
+
+module dnsAWildcard './app/dns-a.bicep' = if (dnsEnable && !appCertificateExists && dnsRecordName == '@' && dnsWildcard) {
+  name: 'dnsAWildcard'
+  scope: dnsZoneRG
+  params: {
+    dnsZoneName: dnsZoneName
+    dnsRecordName: '*'
+    a: env.outputs.staticIp
   }
 }
 
@@ -232,7 +264,7 @@ module appPrep './app/app-prep.bicep' = if (dnsEnable && !appCertificateExists) 
 }
 
 module app './app/app.bicep' = {
-  dependsOn: [KeyVaultAccessUserAssignedIdentity, dnsCNAME]
+  dependsOn: [KeyVaultAccessUserAssignedIdentity, dnsCNAME, dnsA, appPrep]
   name: 'app'
   scope: rg
   params: {
@@ -244,6 +276,7 @@ module app './app/app.bicep' = {
     userAssignedIdentityName: userAssignedIdentity.outputs.name
     dnsDomainName: dnsDomainName
     dnsWildcard: dnsWildcard
+    domainControlValidation: dnsRecordName == '@' ? 'HTTP' : 'CNAME'
     dnsCertificateKV: dnsCertificateExists ? '${keyVault.outputs.endpoint}secrets/DNS-CERTIFICATE' : ''
     msTenantId: msTenantId
     msClientId: msClientId

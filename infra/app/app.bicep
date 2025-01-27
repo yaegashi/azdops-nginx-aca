@@ -5,6 +5,8 @@ param tags object = {}
 param storageAccountName string
 param dnsDomainName string = ''
 param dnsWildcard bool = false
+@allowed(['CNAME', 'TXT', 'HTTP'])
+param domainControlValidation string = 'CNAME'
 param dnsCertificateKV string = ''
 param msTenantId string
 param msClientId string
@@ -64,7 +66,7 @@ resource appCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2
   tags: tags
   properties: {
     subjectName: dnsDomainName
-    domainControlValidation: 'CNAME'
+    domainControlValidation: domainControlValidation
   }
 }
 

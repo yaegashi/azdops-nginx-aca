@@ -21,7 +21,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
     configuration: {
       ingress: {
         external: true
-        targetPort: 8080
+        targetPort: 80
         customDomains: empty(dnsDomainName) ? null : concat([baseDomain], dnsWildcard ? [wildcardDomain] : [])
       }
     }

@@ -310,6 +310,6 @@ output AZURE_RESOURCE_GROUP_NAME string = rg.name
 output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
 output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.endpoint
 output AZURE_CONTAINER_APPS_APP_NAME string = app.outputs.name
-output AZURE_CONTAINER_APPS_LEGO_NAME string = appLego.outputs.name
+output AZURE_CONTAINER_APPS_LEGO_NAME string = legoEnable ? appLego.outputs.name : ''
 output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
 output APP_CERTIFICATE_EXISTS bool = !empty(dnsDomainName)

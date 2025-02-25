@@ -23,9 +23,11 @@ param applicationInsightsName string = ''
 
 param applicationInsightsDashboardName string = ''
 
+param containerAppsEnvironmentName string = ''
+
 param containerAppName string = ''
 
-param containerAppsEnvironmentName string = ''
+param containerAppImage string = 'ghcr.io/yaegashi/azdops-nginx-aca/nginx'
 
 param appCertificateExists bool = false
 
@@ -272,6 +274,7 @@ module app './app/app.bicep' = {
     tags: tags
     containerAppsEnvironmentName: env.outputs.name
     containerAppName: xContainerAppName
+    containerAppImage: containerAppImage
     storageAccountName: storageAccount.outputs.name
     userAssignedIdentityName: userAssignedIdentity.outputs.name
     dnsDomainName: dnsDomainName

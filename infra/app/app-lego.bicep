@@ -1,5 +1,6 @@
 param containerAppsEnvironmentName string
 param containerAppName string
+param containerAppImage string = 'ghcr.io/yaegashi/azdops-nginx-aca/legoaz'
 param location string
 param tags object = {}
 param storageAccountName string
@@ -75,7 +76,7 @@ resource appLego 'Microsoft.App/jobs@2024-10-02-preview' = {
       containers: [
         {
           name: 'legoaz'
-          image: 'ghcr.io/yaegashi/azdops-nginx-aca/legoaz'
+          image: containerAppImage
           command: [
             'sh'
             '-c'

@@ -1,5 +1,6 @@
 param containerAppsEnvironmentName string
 param containerAppName string
+param containerAppImage string = 'ghcr.io/yaegashi/azdops-nginx-aca/nginx'
 param location string = resourceGroup().location
 param tags object = {}
 param storageAccountName string
@@ -135,7 +136,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
       containers: [
         {
           name: 'nginx'
-          image: 'nginx'
+          image: containerAppImage
           env: [
             {
               name: 'NGINX_HOST'

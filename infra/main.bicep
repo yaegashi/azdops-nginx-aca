@@ -65,8 +65,6 @@ var resourceToken = toLower(uniqueString(subscription().id, environmentName, loc
 var dnsEnable = !empty(dnsZoneResourceGroupName) && !empty(dnsZoneName) && !empty(dnsRecordName)
 var dnsDomainName = !dnsEnable ? '' : dnsRecordName == '@' ? dnsZoneName : '${dnsRecordName}.${dnsZoneName}'
 
-var legoEnable = dnsWildcard && !empty(legoEmail) && !empty(legoServer)
-
 resource dnsZoneRG 'Microsoft.Resources/resourceGroups@2021-04-01' existing = if (dnsEnable && !appCertificateExists) {
   scope: subscription(dnsZoneSubscriptionId)
   name: dnsZoneResourceGroupName
@@ -288,23 +286,6 @@ module app './app/app.bicep' = {
   }
 }
 
-module appLego './app/app-lego.bicep' = if (legoEnable) {
-  name: 'appLego'
-  scope: rg
-  params: {
-    location: location
-    tags: tags
-    containerAppsEnvironmentName: env.outputs.name
-    containerAppName: xContainerAppName
-    storageAccountName: storageAccount.outputs.name
-    userAssignedIdentityName: userAssignedIdentity.outputs.name
-    keyVaultName: keyVault.outputs.name
-    dnsDomainName: dnsDomainName
-    legoEmail: legoEmail
-    legoServer: legoServer
-  }
-}
-
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_SUBSCRIPTION_ID string = subscription().subscriptionId
@@ -313,6 +294,5 @@ output AZURE_RESOURCE_GROUP_NAME string = rg.name
 output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
 output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.endpoint
 output AZURE_CONTAINER_APPS_APP_NAME string = app.outputs.name
-output AZURE_CONTAINER_APPS_LEGO_NAME string = legoEnable ? appLego.outputs.name : ''
 output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
 output APP_CERTIFICATE_EXISTS bool = !empty(dnsDomainName)

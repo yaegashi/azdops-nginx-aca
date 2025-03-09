@@ -159,6 +159,35 @@ cmd_aca_restart() {
 	run az containerapp revision restart $ARGS
 }
 
+cmd_aca_lego() {
+	export AZURE_AUTH_METHOD=cli
+	export LEGO_DISABLE_CNAME_SUPPORT=true
+	export LEGO_PATH=$(mktemp -d)
+	if test "$DNS_RECORD_NAME" = '@'; then
+		DNS_DOMAIN_NAME="${DNS_ZONE_NAME}"
+	else
+		DNS_DOMAIN_NAME="${DNS_RECORD_NAME}.${DNS_ZONE_NAME}"
+	fi
+    LEGO_CERT_PATH="${LEGO_PATH}/certificates/${DNS_DOMAIN_NAME}.crt"
+	run az storage file download-batch --only-show-errors --account-name $AZURE_STORAGE_ACCOUNT_NAME --source lego/data --destination $LEGO_PATH
+    if test -f "$LEGO_CERT_PATH"; then
+        CMD="renew --renew-hook 'bash $0 aca-lego-hook'"
+    else
+        CMD="run --run-hook 'bash $0 aca-lego-hook'"
+    fi
+    eval run lego -a --server $LEGO_SERVER --email $LEGO_EMAIL --dns azuredns -d "'$DNS_DOMAIN_NAME'" -d "'*.$DNS_DOMAIN_NAME'" --pfx "$CMD"
+	rm -rf "$LEGO_PATH"
+}
+
+cmd_aca_lego_hook() {
+	if test -z "$LEGO_CERT_PFX_PATH" -o -z "$LEGO_PATH"; then
+		msg 'Missing LEGO_CERT_PFX_PATH or LEGO_PATH settings'
+		exit 1
+	fi
+	run az keyvault certificate import --vault-name $AZURE_KEY_VAULT_NAME --name DNS-CERTIFICATE --file $LEGO_CERT_PFX_PATH --password changeit
+	run az storage file upload-batch --only-show-errors --account-name $AZURE_STORAGE_ACCOUNT_NAME --source $LEGO_PATH --destination lego/data
+}
+
 cmd_portal_aca() {
 	URL="https://portal.azure.com/#@${AZURE_TENANT_ID}/resource/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AZURE_RESOURCE_GROUP_NAME}"
 	run xdg-open "$URL"
@@ -206,6 +235,8 @@ cmd_help() {
 	msg "  aca-restart                - ACA: restart revision"
 	msg "  aca-logs [follow]          - ACA: show container logs"
 	msg "  aca-console [command...]   - ACA: connect to container"
+	msg "  aca-lego                   - ACA: LEGO certificate update"
+	msg "  aca-lego-hook              - ACA: LEGO certificate update hook"
 	msg "  portal-aca                 - Portal: open ACA resource group in browser"
 	msg "  portal-meid                - Portal: open ME-ID app registration in browser"
 	msg "  open                       - open app in browser"
@@ -304,6 +335,14 @@ case "$1" in
 	aca-restart)
 		shift
 		cmd_aca_restart "$@"
+		;;
+	aca-lego)
+		shift
+		cmd_aca_lego "$@"
+		;;
+	aca-lego-hook)
+		shift
+		cmd_aca_lego_hook "$@"
 		;;
 	portal-aca)
 		shift

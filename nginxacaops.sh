@@ -169,13 +169,14 @@ cmd_aca_lego() {
 		DNS_DOMAIN_NAME="${DNS_RECORD_NAME}.${DNS_ZONE_NAME}"
 	fi
     LEGO_CERT_PATH="${LEGO_PATH}/certificates/${DNS_DOMAIN_NAME}.crt"
+	run az storage directory create --only-show-errors --account-name $AZURE_STORAGE_ACCOUNT_NAME --share lego --name data >/dev/null
 	run az storage file download-batch --only-show-errors --account-name $AZURE_STORAGE_ACCOUNT_NAME --source lego/data --destination $LEGO_PATH
     if test -f "$LEGO_CERT_PATH"; then
         CMD="renew --renew-hook 'bash $0 aca-lego-hook'"
     else
         CMD="run --run-hook 'bash $0 aca-lego-hook'"
     fi
-    eval run lego -a --server $LEGO_SERVER --email $LEGO_EMAIL --dns azuredns -d "'$DNS_DOMAIN_NAME'" -d "'*.$DNS_DOMAIN_NAME'" --pfx "$CMD"
+    eval run lego -a --server $LEGO_SERVER --email $LEGO_EMAIL --dns azuredns --dns.propagation-disable-ans -d "'$DNS_DOMAIN_NAME'" -d "'*.$DNS_DOMAIN_NAME'" --pfx "$CMD"
 	rm -rf "$LEGO_PATH"
 }
 

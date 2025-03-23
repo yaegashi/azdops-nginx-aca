@@ -157,13 +157,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
           volumeMounts: [
             {
               volumeName: 'nginx'
-              subPath: 'templates'
-              mountPath: '/etc/nginx/templates'
-            }
-            {
-              volumeName: 'nginx'
-              subPath: 'data'
-              mountPath: '/data'
+              mountPath: '/nginx'
             }
           ]
         }

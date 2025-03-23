@@ -27,7 +27,7 @@ param containerAppsEnvironmentName string = ''
 
 param containerAppName string = ''
 
-param containerAppImage string = 'ghcr.io/yaegashi/azdops-nginx-aca/nginx'
+param containerAppImage string = ''
 
 param appCertificateExists bool = false
 
@@ -236,6 +236,9 @@ var xContainerAppsEnvironmentName = !empty(containerAppsEnvironmentName)
   ? containerAppsEnvironmentName
   : '${abbrs.appManagedEnvironments}${resourceToken}'
 var xContainerAppName = !empty(containerAppName) ? containerAppName : '${abbrs.appContainerApps}${resourceToken}'
+var xContainerAppImage = !empty(containerAppImage)
+  ? containerAppImage
+  : 'ghcr.io/yaegashi/azure-easy-auth-njs/nginx:latest'
 
 module env './app/env.bicep' = {
   name: 'env'
@@ -272,7 +275,7 @@ module app './app/app.bicep' = {
     tags: tags
     containerAppsEnvironmentName: env.outputs.name
     containerAppName: xContainerAppName
-    containerAppImage: containerAppImage
+    containerAppImage: xContainerAppImage
     storageAccountName: storageAccount.outputs.name
     userAssignedIdentityName: userAssignedIdentity.outputs.name
     dnsDomainName: dnsDomainName

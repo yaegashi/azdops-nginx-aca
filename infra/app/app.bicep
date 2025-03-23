@@ -1,6 +1,6 @@
 param containerAppsEnvironmentName string
 param containerAppName string
-param containerAppImage string = 'ghcr.io/yaegashi/azdops-nginx-aca/nginx'
+param containerAppImage string
 param location string = resourceGroup().location
 param tags object = {}
 param storageAccountName string

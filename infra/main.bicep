@@ -40,10 +40,6 @@ param dnsWildcard bool = false
 
 param dnsCertificateExists bool = false
 
-param legoEmail string = ''
-
-param legoServer string = 'https://acme-staging-v02.api.letsencrypt.org/directory'
-
 param msTenantId string
 param msClientId string
 @secure()

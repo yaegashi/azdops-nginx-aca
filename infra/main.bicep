@@ -46,6 +46,8 @@ param msClientId string
 param msClientSecret string
 param msAllowedGroupId string = ''
 
+param nginxStorageAccountResourceId string = ''
+param nginxStorageShareName string = ''
 param nginxContributorPrincipalId string = ''
 
 param githubRepositoryUrl string = ''
@@ -288,6 +290,8 @@ module app './app/app.bicep' = {
     msClientId: msClientId
     msClientSecretKV: '${keyVault.outputs.endpoint}secrets/MS-CLIENT-SECRET'
     msAllowedGroupId: msAllowedGroupId
+    nginxStorageAccountResourceId: nginxStorageAccountResourceId
+    nginxStorageShareName: nginxStorageShareName
     nginxContributorPrincipalId: nginxContributorPrincipalId
   }
 }

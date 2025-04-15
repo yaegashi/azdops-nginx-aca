@@ -66,12 +66,14 @@ jobs:
           azd env set MS_TENANT_ID "$MS_TENANT_ID"
           azd env set MS_CLIENT_ID "$MS_CLIENT_ID"
           azd env set MS_ALLOWED_GROUP_ID "$MS_ALLOWED_GROUP_ID"
+          azd env set NGINX_STORAGE_ACCOUNT_RESOURCE_ID "$NGINX_STORAGE_ACCOUNT_RESOURCE_ID"
+          azd env set NGINX_STORAGE_SHARE_NAME "$NGINX_STORAGE_SHARE_NAME"
           azd env set NGINX_CONTRIBUTOR_PRINCIPAL_ID "$NGINX_CONTRIBUTOR_PRINCIPAL_ID"
           azd env set APP_CERTIFICATE_EXISTS false
           azd env set GITHUB_REPOSITORY_URL "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
           azd env set GITHUB_ACTIONS_RUN_URL "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           # Check if DNS-CERTIFICATE exists in the key vault
-          AZURE_KEY_VAULT_NAME=$(azd env get-value AZURE_KEY_VAULT_NAME)
+          AZURE_KEY_VAULT_NAME=$(azd env get-value AZURE_KEY_VAULT_NAME) || AZURE_KEY_VAULT_NAME=''
           if test -n "$AZURE_KEY_VAULT_NAME"; then
             az keyvault certificate show --vault-name "$AZURE_KEY_VAULT_NAME" --name DNS-CERTIFICATE > /dev/null 2>&1 && A=true || A=false
             azd env set DNS_CERTIFICATE_EXISTS $A

@@ -50,6 +50,12 @@
     "msAllowedGroupId": {
       "value": "${MS_ALLOWED_GROUP_ID}"
     },
+    "nginxStorageAccountResourceId": {
+      "value": "${NGINX_STORAGE_ACCOUNT_RESOURCE_ID}"
+    },
+    "nginxStorageShareName": {
+      "value": "${NGINX_STORAGE_SHARE_NAME}"
+    },
     "nginxContributorPrincipalId": {
       "value": "${NGINX_CONTRIBUTOR_PRINCIPAL_ID}"
     },

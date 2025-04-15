@@ -13,6 +13,8 @@ param msTenantId string
 param msClientId string
 param msClientSecretKV string
 param msAllowedGroupId string = ''
+param nginxStorageAccountResourceId string = ''
+param nginxStorageShareName string = ''
 param nginxContributorPrincipalId string = ''
 param userAssignedIdentityName string
 
@@ -30,35 +32,9 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' existing = {
   }
   resource fileService 'fileServices' = {
     name: 'default'
-    resource nginx 'shares' = {
-      name: 'nginx'
-    }
     resource lego 'shares' = {
       name: 'lego'
     }
-    // Resource ID "fileShares/nginx" is needed for the role assignment (nginxRole)
-    // https://github.com/Azure/bicep-types-az/issues/1532
-    #disable-next-line BCP081
-    resource nginxForRole 'fileShares' existing = {
-      name: 'nginx'
-    }
-  }
-}
-
-// Azure built-in role: Storage File Data Privileged Contributor
-var nginxRoleDefId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  '69566ab7-960f-475b-8e7c-b3118f30c6bd'
-)
-
-// Grant file share acecss to NGINX content contributor
-resource nginxRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(nginxContributorPrincipalId)) {
-  dependsOn: [storage::fileService::nginx]
-  scope: storage::fileService::nginxForRole
-  name: guid(subscription().id, resourceGroup().id, nginxContributorPrincipalId, nginxRoleDefId)
-  properties: {
-    principalId: nginxContributorPrincipalId
-    roleDefinitionId: nginxRoleDefId
   }
 }
 
@@ -72,6 +48,31 @@ var tokenStoreSas = storage.listServiceSAS('2022-05-01', {
 }).serviceSasToken
 var tokenStoreUrl = 'https://${storage.name}.blob.${environment().suffixes.storage}/${storage::blobService::tokenStore.name}?${tokenStoreSas}'
 
+// Split ARM Resource ID
+// /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<name>
+var sp = split(empty(nginxStorageAccountResourceId) ? storage.id : nginxStorageAccountResourceId, '/')
+
+resource nginxStorageAccountRG 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+  scope: subscription(sp[2])
+  name: sp[4]
+}
+
+resource nginxStorageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' existing = {
+  scope: nginxStorageAccountRG
+  name: sp[8]
+}
+
+module nginxStorageAccountMod 'storage-nginx.bicep' = {
+  dependsOn: [storage::fileService::lego]
+  name: 'nginxStorageMod'
+  scope: nginxStorageAccountRG
+  params: {
+    storageAccountName: nginxStorageAccount.name
+    storageShareName: nginxStorageShareName
+    principalId: nginxContributorPrincipalId
+  }
+}
+
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-10-02-preview' existing = {
   name: containerAppsEnvironmentName
   resource nginx 'storages' = {
@@ -79,9 +80,9 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-10-02-
     properties: {
       azureFile: {
         accessMode: 'ReadWrite'
-        accountName: storage.name
-        accountKey: storage.listKeys().keys[0].value
-        shareName: storage::fileService::nginx.name
+        accountName: nginxStorageAccount.name
+        accountKey: nginxStorageAccount.listKeys().keys[0].value
+        shareName: nginxStorageAccountMod.outputs.storageShareName
       }
     }
   }
